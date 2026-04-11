@@ -27,8 +27,8 @@ export default class ReportingProjectsController extends ReportingProjectsBase {
     let statusesClause = "";
     if (req.query.statuses) {
       const statusIds = (req.query.statuses as string).split(",").filter(id => id.trim());
-      const { clause, params } = SqlHelper.buildOptionalInClause(statusIds, 'status_id', paramOffset);
-      statusesClause = clause.replace('status_id', 'p.status_id');
+      const { clause, params } = SqlHelper.buildOptionalInClause(statusIds, 'p.status_id', paramOffset);
+      statusesClause = clause;
       filterParams.push(...params);
       paramOffset += params.length;
     }
@@ -36,8 +36,8 @@ export default class ReportingProjectsController extends ReportingProjectsBase {
     let healthsClause = "";
     if (req.query.healths) {
       const healthIds = (req.query.healths as string).split(",").filter(id => id.trim());
-      const { clause, params } = SqlHelper.buildOptionalInClause(healthIds, 'health_id', paramOffset);
-      healthsClause = clause.replace('health_id', 'p.health_id');
+      const { clause, params } = SqlHelper.buildOptionalInClause(healthIds, 'p.health_id', paramOffset);
+      healthsClause = clause;
       filterParams.push(...params);
       paramOffset += params.length;
     }
@@ -45,8 +45,8 @@ export default class ReportingProjectsController extends ReportingProjectsBase {
     let categoriesClause = "";
     if (req.query.categories) {
       const categoryIds = (req.query.categories as string).split(",").filter(id => id.trim());
-      const { clause, params } = SqlHelper.buildOptionalInClause(categoryIds, 'category_id', paramOffset);
-      categoriesClause = clause.replace('category_id', 'p.category_id');
+      const { clause, params } = SqlHelper.buildOptionalInClause(categoryIds, 'p.category_id', paramOffset);
+      categoriesClause = clause;
       filterParams.push(...params);
       paramOffset += params.length;
     }
@@ -63,8 +63,8 @@ export default class ReportingProjectsController extends ReportingProjectsBase {
     let teamsClause = "";
     if (req.query.teams) {
       const teamIds = (req.query.teams as string).split(",").filter(id => id.trim());
-      const { clause, params } = SqlHelper.buildOptionalInClause(teamIds, 'team_id', paramOffset);
-      teamsClause = clause.replace('team_id', 'p.team_id');
+      const { clause, params } = SqlHelper.buildOptionalInClause(teamIds, 'p.team_id', paramOffset);
+      teamsClause = clause;
       filterParams.push(...params);
       paramOffset += params.length;
     }
@@ -272,8 +272,8 @@ export default class ReportingProjectsController extends ReportingProjectsBase {
     let statusesClause = "";
     if (req.query.statuses) {
       const statusIds = (req.query.statuses as string).split(",").filter(id => id.trim());
-      const { clause, params } = SqlHelper.buildOptionalInClause(statusIds, 'status_id', paramOffset);
-      statusesClause = clause.replace('status_id', 'p.status_id');
+      const { clause, params } = SqlHelper.buildOptionalInClause(statusIds, 'p.status_id', paramOffset);
+      statusesClause = clause;
       filterParams.push(...params);
       paramOffset += params.length;
     }
@@ -281,8 +281,8 @@ export default class ReportingProjectsController extends ReportingProjectsBase {
     let healthsClause = "";
     if (req.query.healths) {
       const healthIds = (req.query.healths as string).split(",").filter(id => id.trim());
-      const { clause, params } = SqlHelper.buildOptionalInClause(healthIds, 'health_id', paramOffset);
-      healthsClause = clause.replace('health_id', 'p.health_id');
+      const { clause, params } = SqlHelper.buildOptionalInClause(healthIds, 'p.health_id', paramOffset);
+      healthsClause = clause;
       filterParams.push(...params);
       paramOffset += params.length;
     }
@@ -290,8 +290,8 @@ export default class ReportingProjectsController extends ReportingProjectsBase {
     let categoriesClause = "";
     if (req.query.categories) {
       const categoryIds = (req.query.categories as string).split(",").filter(id => id.trim());
-      const { clause, params } = SqlHelper.buildOptionalInClause(categoryIds, 'category_id', paramOffset);
-      categoriesClause = clause.replace('category_id', 'p.category_id');
+      const { clause, params } = SqlHelper.buildOptionalInClause(categoryIds, 'p.category_id', paramOffset);
+      categoriesClause = clause;
       filterParams.push(...params);
       paramOffset += params.length;
     }
@@ -308,8 +308,8 @@ export default class ReportingProjectsController extends ReportingProjectsBase {
     let teamsClause = "";
     if (req.query.teams) {
       const teamIds = (req.query.teams as string).split(",").filter(id => id.trim());
-      const { clause, params } = SqlHelper.buildOptionalInClause(teamIds, 'team_id', paramOffset);
-      teamsClause = clause.replace('team_id', 'p.team_id');
+      const { clause, params } = SqlHelper.buildOptionalInClause(teamIds, 'p.team_id', paramOffset);
+      teamsClause = clause;
       filterParams.push(...params);
       paramOffset += params.length;
     }

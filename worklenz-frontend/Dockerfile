@@ -1,103 +1,54 @@
-# Production-ready Dockerfile for Worklenz Frontend
-# Based on official Worklenz frontend structure with runtime environment injection
-# Multi-stage build with optimized production setup
-
 # Stage 1: Build stage
-FROM node:22-alpine AS builder
+FROM node:20-bullseye-slim AS builder
 
-# Set working directory
 WORKDIR /app
-
-# Copy package files
 COPY package*.json ./
-
-# Install dependencies
-RUN npm ci && \
-    npm cache clean --force
-
-# Copy frontend source code
+RUN npm ci && npm cache clean --force
 COPY . ./
 
-# Set build-time environment variables to use runtime variables as fallback
 ENV VITE_API_URL=__VITE_API_URL__
 ENV VITE_SOCKET_URL=__VITE_SOCKET_URL__
 
-# Build React application for production with Vite
 RUN npm run build
 
 # Stage 2: Production stage
-FROM node:22-alpine
+FROM node:20-bullseye-slim
 
-# Create non-root user
-RUN addgroup -g 1001 -S worklenz && \
-    adduser -S -u 1001 -G worklenz worklenz
+RUN groupadd -g 1001 worklenz && useradd -u 1001 -g worklenz worklenz
 
-# Install runtime dependencies
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     tini \
     curl \
     && npm install -g serve@14.2.1 \
-    && npm cache clean --force
+    && npm cache clean --force \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
 WORKDIR /app
 
-# Copy built application from builder stage
 COPY --from=builder --chown=worklenz:worklenz /app/build ./build
 
-# Create env-config.js placeholder
-RUN echo "window.VITE_API_URL = \"\";" > /app/build/env-config.js && \
-    echo "window.VITE_SOCKET_URL = \"\";" >> /app/build/env-config.js && \
-    echo "window.VITE_APP_TITLE = \"\";" >> /app/build/env-config.js && \
-    echo "window.VITE_APP_ENV = \"\";" >> /app/build/env-config.js && \
-    echo "window.VITE_ENABLE_RECAPTCHA = \"\";" >> /app/build/env-config.js && \
-    echo "window.VITE_RECAPTCHA_SITE_KEY = \"\";" >> /app/build/env-config.js && \
-    echo "window.VITE_ENABLE_GOOGLE_LOGIN = \"\";" >> /app/build/env-config.js && \
-    echo "window.VITE_ENABLE_SURVEY_MODAL = \"\";" >> /app/build/env-config.js && \
+RUN printf 'window.VITE_API_URL = "";\n' > /app/build/env-config.js && \
+    printf 'window.VITE_SOCKET_URL = "";\n' >> /app/build/env-config.js && \
+    printf 'window.VITE_APP_TITLE = "";\n' >> /app/build/env-config.js && \
+    printf 'window.VITE_APP_ENV = "";\n' >> /app/build/env-config.js && \
+    printf 'window.VITE_ENABLE_RECAPTCHA = "";\n' >> /app/build/env-config.js && \
+    printf 'window.VITE_RECAPTCHA_SITE_KEY = "";\n' >> /app/build/env-config.js && \
+    printf 'window.VITE_ENABLE_GOOGLE_LOGIN = "";\n' >> /app/build/env-config.js && \
+    printf 'window.VITE_ENABLE_SURVEY_MODAL = "";\n' >> /app/build/env-config.js && \
     chown worklenz:worklenz /app/build/env-config.js
 
-# Create runtime environment configuration script
-COPY --chown=worklenz:worklenz <<'EOF' /app/env-config.sh
-#!/bin/sh
-# Generate env-config.js with runtime environment variables
-cat > /app/build/env-config.js << ENVEOF
-window.VITE_API_URL = "${VITE_API_URL}";
-window.VITE_SOCKET_URL = "${VITE_SOCKET_URL}";
-window.VITE_APP_TITLE = "${VITE_APP_TITLE:-Worklenz}";
-window.VITE_APP_ENV = "${VITE_APP_ENV:-production}";
-window.VITE_ENABLE_RECAPTCHA = "${VITE_ENABLE_RECAPTCHA:-false}";
-window.VITE_RECAPTCHA_SITE_KEY = "${VITE_RECAPTCHA_SITE_KEY:-}";
-window.VITE_ENABLE_GOOGLE_LOGIN = "${VITE_ENABLE_GOOGLE_LOGIN:-false}";
-window.VITE_ENABLE_SURVEY_MODAL = "${VITE_ENABLE_SURVEY_MODAL:-false}";
-ENVEOF
-EOF
+RUN printf '#!/bin/sh\ncat > /app/build/env-config.js << ENVEOF\nwindow.VITE_API_URL = "${VITE_API_URL}";\nwindow.VITE_SOCKET_URL = "${VITE_SOCKET_URL}";\nwindow.VITE_APP_TITLE = "${VITE_APP_TITLE:-Worklenz}";\nwindow.VITE_APP_ENV = "${VITE_APP_ENV:-production}";\nwindow.VITE_ENABLE_RECAPTCHA = "${VITE_ENABLE_RECAPTCHA:-false}";\nwindow.VITE_RECAPTCHA_SITE_KEY = "${VITE_RECAPTCHA_SITE_KEY:-}";\nwindow.VITE_ENABLE_GOOGLE_LOGIN = "${VITE_ENABLE_GOOGLE_LOGIN:-false}";\nwindow.VITE_ENABLE_SURVEY_MODAL = "${VITE_ENABLE_SURVEY_MODAL:-false}";\nENVEOF\n' > /app/env-config.sh && chmod +x /app/env-config.sh
 
-RUN chmod +x /app/env-config.sh
+RUN printf '#!/bin/sh\nset -e\necho "Generating runtime environment configuration..."\n/app/env-config.sh\necho "Starting frontend server..."\nexec serve -s /app/build -l 5000 --no-request-logging\n' > /app/start.sh && chmod +x /app/start.sh
 
-# Create startup script
-COPY --chown=worklenz:worklenz <<'EOF' /app/start.sh
-#!/bin/sh
-set -e
-echo "Generating runtime environment configuration..."
-/app/env-config.sh
-echo "Starting frontend server..."
-exec serve -s /app/build -l 5000 --no-request-logging
-EOF
+RUN chown worklenz:worklenz /app/env-config.sh /app/start.sh
 
-RUN chmod +x /app/start.sh
-
-# Switch to non-root user
 USER worklenz
-
-# Expose frontend port
 EXPOSE 5000
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
     CMD curl -f http://localhost:5000 || exit 1
 
-# Use tini as init system
-ENTRYPOINT ["/sbin/tini", "--"]
-
-# Start application with runtime environment injection
+ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["/app/start.sh"]
+

@@ -106,7 +106,7 @@ const MembersReportsTable = () => {
 
   useEffect(() => {
     if (!isLoading) dispatch(fetchMembersData({ duration, dateRange }));
-  }, [dispatch, archived, searchQuery, dateRange, index, pageSize]);
+  }, [dispatch, archived, searchQuery, duration, dateRange, index, pageSize]);
 
   return (
     <ConfigProvider

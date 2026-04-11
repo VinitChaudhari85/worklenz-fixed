@@ -1,7 +1,5 @@
 services:
-  # ============================================================
   # PostgreSQL Database
-  # ============================================================
   postgres:
     image: postgres:15.10-alpine
     container_name: worklenz-postgres
@@ -27,9 +25,7 @@ services:
     security_opt:
       - no-new-privileges:true
 
-  # ============================================================
-  # Database Backup Service (opt-in via --profile backup)
-  # ============================================================
+  # Database Backup Service
   db-backup:
     image: postgres:15.10-alpine
     container_name: worklenz-db-backup
@@ -52,121 +48,109 @@ services:
     command: >
       -c "
       while true; do
-        echo 'Running database backup...';
-        BACKUP_FILE=\"/backups/worklenz_backup_$$(date +%Y%m%d_%H%M%S).sql\";
-        pg_dump > \"$$BACKUP_FILE\" 2>&1;
+        echo 'Running database backup...'
+        BACKUP_FILE=\"/backups/worklenz_backup_$$(date +%Y%m%d_%H%M%S).sql\"
+        pg_dump > \"$$BACKUP_FILE\" 2>&1
         if [ $$? -eq 0 ]; then
-          echo \"Backup completed: $$BACKUP_FILE\";
-          gzip \"$$BACKUP_FILE\";
-          find /backups -name 'worklenz_backup_*.sql.gz' -mtime +$$BACKUP_RETENTION_DAYS -delete;
-          echo 'Cleanup done';
+          echo \"Database dump completed: $$BACKUP_FILE\"
+          gzip \"$$BACKUP_FILE\"
+          if [ $$? -eq 0 ]; then
+            echo \"Backup compression completed: $$BACKUP_FILE.gz\"
+            echo \"Cleaning up backups older than $$BACKUP_RETENTION_DAYS days...\"
+            find /backups -name 'worklenz_backup_*.sql.gz' -mtime +$$BACKUP_RETENTION_DAYS -delete
+            echo \"Cleanup completed successfully\"
+          else
+            echo \"ERROR: Backup compression failed for $$BACKUP_FILE\"
+            echo \"Removing incomplete uncompressed backup file...\"
+            rm -f \"$$BACKUP_FILE\"
+            echo \"Skipping cleanup due to backup failure\"
+          fi
         else
-          echo 'ERROR: Backup failed';
-          rm -f \"$$BACKUP_FILE\";
-        fi;
-        echo 'Next backup in 24 hours...';
-        sleep 86400;
+          echo 'ERROR: Database backup failed'
+          echo \"Removing failed backup file: $$BACKUP_FILE\"
+          rm -f \"$$BACKUP_FILE\"
+          echo \"Skipping cleanup due to backup failure\"
+        fi
+        echo 'Next backup in 24 hours...'
+        sleep 86400
       done
       "
     profiles:
       - backup
 
-  # ============================================================
-  # Redis Cache
-  # NOTE: No profile — always starts with the stack
-  # ============================================================
+  # Redis Cache (Express mode - default)
   redis:
     image: redis:7.4-alpine
     container_name: worklenz-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-worklenz_redis_pass}
     volumes:
       - redis_data:/data
     networks:
       - worklenz-backend
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-worklenz_redis_pass}", "ping"]
+      test: ["CMD", "sh", "-c", "redis-cli -a ${REDIS_PASSWORD:-worklenz_redis_pass} ping"]
       interval: 10s
       timeout: 3s
       retries: 5
       start_period: 10s
     security_opt:
       - no-new-privileges:true
+    profiles:
+      - express
 
-  # ============================================================
-  # MinIO Object Storage
-  # FIX: Switched from docker.io/minio/minio (dead registry)
-  #      to quay.io/minio/minio (official, actively updated)
-  # NOTE: No profile — always starts with the stack
-  # ============================================================
+  # MinIO Object Storage (Express mode - default)
   minio:
-    image: quay.io/minio/minio:RELEASE.2025-02-28T09-55-16Z
+    image: minio/minio:latest
     container_name: worklenz-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000"
-      - "9001:9001"
     environment:
-      MINIO_ROOT_USER: ${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID is required}
-      MINIO_ROOT_PASSWORD: ${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY is required}
+      MINIO_ROOT_USER: ${AWS_ACCESS_KEY_ID:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${AWS_SECRET_ACCESS_KEY:-minioadmin}
       MINIO_BROWSER: ${MINIO_BROWSER:-on}
     volumes:
       - minio_data:/data
     networks:
       - worklenz-backend
-      - worklenz-frontend
     healthcheck:
-      # FIX: Use mc ready (more reliable than curl on /minio/health/live)
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 15s
-      timeout: 10s
-      retries: 5
-      start_period: 20s
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 10s
     security_opt:
       - no-new-privileges:true
+    profiles:
+      - express
 
-  # ============================================================
-  # MinIO Init — Creates the initial bucket
-  # FIX: Switched to quay.io/minio/mc (matches minio image source)
-  # FIX: Replaced fragile "sleep 5" with a proper retry loop
-  # FIX: Added depends_on minio healthy so it never races
-  # NOTE: No profile — always starts with the stack
-  # ============================================================
+  # MinIO Client - Create initial bucket (Express mode)
   minio-init:
-    image: quay.io/minio/mc:RELEASE.2024-11-21T17-21-54Z
+    image: minio/mc:latest
     container_name: worklenz-minio-init
-    restart: on-failure
     depends_on:
       minio:
         condition: service_healthy
     environment:
-      MINIO_ROOT_USER: ${AWS_ACCESS_KEY_ID}
-      MINIO_ROOT_PASSWORD: ${AWS_SECRET_ACCESS_KEY}
+      MINIO_ROOT_USER: ${AWS_ACCESS_KEY_ID:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${AWS_SECRET_ACCESS_KEY:-minioadmin}
       MINIO_BUCKET: ${AWS_BUCKET:-worklenz-bucket}
     networks:
       - worklenz-backend
-      - worklenz-frontend
     entrypoint: >
       /bin/sh -c "
-      echo '[minio-init] Configuring MinIO client alias...';
-      until /usr/bin/mc alias set worklenz http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD}; do
-        echo '[minio-init] MinIO not ready yet, retrying in 3s...';
-        sleep 3;
-      done;
-      echo '[minio-init] Creating bucket: '$${MINIO_BUCKET};
+      echo 'Waiting for MinIO to be ready...';
+      sleep 5;
+      /usr/bin/mc alias set worklenz http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD};
       /usr/bin/mc mb worklenz/$${MINIO_BUCKET} --ignore-existing;
-      echo '[minio-init] Setting anonymous download policy...';
       /usr/bin/mc anonymous set download worklenz/$${MINIO_BUCKET};
-      echo '[minio-init] Done. Bucket ready.';
+      echo 'MinIO bucket created and configured successfully';
       exit 0;
       "
+    profiles:
+      - express
 
-  # ============================================================
   # Backend API
-  # FIX: Now waits for both postgres AND minio-init to complete
-  #      so the bucket always exists before the backend starts
-  # ============================================================
   backend:
     image: chamikajaycey/worklenz-backend:${BACKEND_VERSION:-2.1.6}
     build:
@@ -177,19 +161,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
-      minio-init:
-        condition: service_completed_successfully
     environment:
-      # Server
+      # Server Configuration
       NODE_ENV: production
       PORT: 3000
       SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET is required}
       COOKIE_SECRET: ${COOKIE_SECRET:?COOKIE_SECRET is required}
       SESSION_NAME: ${SESSION_NAME:-worklenz.sid}
 
-      # Database
+      # Database Configuration
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: ${DB_NAME:-worklenz_db}
@@ -198,51 +178,46 @@ services:
       DB_MAX_CLIENTS: ${DB_MAX_CLIENTS:-50}
       USE_PG_NATIVE: ${USE_PG_NATIVE:-false}
 
-      # CORS
+      # CORS Configuration
       SERVER_CORS: ${SERVER_CORS:-*}
       SOCKET_IO_CORS: ${SOCKET_IO_CORS}
       FRONTEND_URL: ${FRONTEND_URL}
 
-      # Storage
+      # Storage Configuration
       STORAGE_PROVIDER: ${STORAGE_PROVIDER:-s3}
 
-      # Redis
+      # Redis Configuration
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-worklenz_redis_pass}
       REDIS_DB: ${REDIS_DB:-0}
 
-      # S3 / MinIO
+      # S3/MinIO Configuration (Express mode default)
       AWS_REGION: ${AWS_REGION:-us-east-1}
       AWS_BUCKET: ${AWS_BUCKET:-worklenz-bucket}
-      S3_BUCKET: ${S3_BUCKET:-worklenz-bucket}
-      S3_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      S3_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      # IMPORTANT: S3_URL must point to minio (container name) for backend-to-minio
-      # communication inside Docker, NOT to localhost
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-minioadmin}
       S3_URL: ${S3_URL:-http://minio:9000}
 
-      # Azure (optional, leave blank)
+      # Azure Blob Storage Configuration (Advanced mode)
       AZURE_STORAGE_ACCOUNT_NAME: ${AZURE_STORAGE_ACCOUNT_NAME:-}
       AZURE_STORAGE_CONTAINER: ${AZURE_STORAGE_CONTAINER:-}
       AZURE_STORAGE_ACCOUNT_KEY: ${AZURE_STORAGE_ACCOUNT_KEY:-}
       AZURE_STORAGE_URL: ${AZURE_STORAGE_URL:-}
 
-      # Google OAuth (optional)
+      # Google OAuth (Optional)
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-}
 
-      # Email (optional)
+      # Email Configuration (Optional)
       ENABLE_EMAIL_CRONJOBS: ${ENABLE_EMAIL_CRONJOBS:-false}
       CONTACT_US_EMAIL: ${CONTACT_US_EMAIL:-}
 
-      # JWT
+      # JWT Configuration
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
 
-      # reCAPTCHA (optional)
+      # Google Recaptcha (Optional)
       GOOGLE_CAPTCHA_SECRET_KEY: ${GOOGLE_CAPTCHA_SECRET_KEY:-}
       GOOGLE_CAPTCHA_PASS_SCORE: ${GOOGLE_CAPTCHA_PASS_SCORE:-0.8}
 
@@ -258,14 +233,12 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:3000/public/health"]
       interval: 30s
       timeout: 10s
-      retries: 5
-      start_period: 90s
+      retries: 3
+      start_period: 60s
     security_opt:
       - no-new-privileges:true
 
-  # ============================================================
   # Frontend Application
-  # ============================================================
   frontend:
     image: chamikajaycey/worklenz-frontend:${FRONTEND_VERSION:-2.1.6}
     build:
@@ -277,6 +250,7 @@ services:
       backend:
         condition: service_healthy
     environment:
+      # Runtime environment variables (injected at startup)
       VITE_API_URL: ${VITE_API_URL}
       VITE_SOCKET_URL: ${VITE_SOCKET_URL}
       VITE_APP_TITLE: ${VITE_APP_TITLE:-Worklenz}
@@ -292,13 +266,11 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 20s
     security_opt:
       - no-new-privileges:true
 
-  # ============================================================
   # Nginx Reverse Proxy
-  # ============================================================
   nginx:
     image: nginx:1.27-alpine
     container_name: worklenz-nginx
@@ -329,9 +301,7 @@ services:
       - no-new-privileges:true
     command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
 
-  # ============================================================
-  # Certbot — Let's Encrypt SSL (opt-in via --profile ssl)
-  # ============================================================
+  # Certbot for Let's Encrypt SSL
   certbot:
     image: certbot/certbot:v3.1.0
     container_name: worklenz-certbot
@@ -343,11 +313,6 @@ services:
     profiles:
       - ssl
 
-# ============================================================
-# Networks
-# worklenz-backend: internal only (postgres, redis, minio, backend)
-# worklenz-frontend: external facing (nginx, frontend, backend)
-# ============================================================
 networks:
   worklenz-backend:
     driver: bridge
@@ -355,9 +320,6 @@ networks:
   worklenz-frontend:
     driver: bridge
 
-# ============================================================
-# Volumes
-# ============================================================
 volumes:
   postgres_data:
     driver: local

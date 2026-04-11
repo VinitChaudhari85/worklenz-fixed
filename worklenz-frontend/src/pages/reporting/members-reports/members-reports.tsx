@@ -48,7 +48,7 @@ const MembersReports = () => {
   useEffect(() => {
     dispatch(setDuration(duration));
     dispatch(setDateRange(dateRange));
-  }, [dateRange, duration]);
+  }, [dispatch, dateRange, duration]);
 
   return (
     <Flex vertical>
@@ -65,7 +65,7 @@ const MembersReports = () => {
             <TimeWiseFilter />
 
             <Dropdown
-              menu={{ items: [{ key: '1', label: t('excelButton') }], onClick: handleExport }}
+              menu={{ items: [{ key: '1', label: t('excelButton'), onClick: handleExport }] }}
             >
               <Button type="primary" icon={<DownOutlined />} iconPosition="end">
                 {t('exportButton')}

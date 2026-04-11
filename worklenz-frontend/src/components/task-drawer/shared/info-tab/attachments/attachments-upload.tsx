@@ -24,6 +24,7 @@ const AttachmentsUpload = ({
     if (event.target.files && event.target.files.length > 0) {
       const filesArray = Array.from(event.target.files);
       onFilesSelected(filesArray);
+      event.target.value = '';
     }
   };
 

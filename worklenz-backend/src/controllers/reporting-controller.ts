@@ -19,10 +19,7 @@ const LAST_QUARTER = "LAST_QUARTER";
 export default class ReportingController extends WorklenzControllerBase {
   @HandleExceptions()
   public static async create(req: IWorkLenzRequest, res: IWorkLenzResponse): Promise<IWorkLenzResponse> {
-    const q = ``;
-    const result = await db.query(q, []);
-    const [data] = result.rows;
-    return res.status(200).send(new ServerResponse(true, data));
+    return res.status(501).send(new ServerResponse(false, null, "Not implemented"));
   }
 
   @HandleExceptions()
@@ -65,7 +62,7 @@ export default class ReportingController extends WorklenzControllerBase {
         selectedProjects.push(element.name);
         estimated.push(element.total_estimated_time ? parseFloat(moment.duration(element.total_estimated_time, "seconds").asHours().toFixed(2)) : 0);
         logged.push(element.total_logged_time ? parseFloat(moment.duration(element.total_logged_time, "seconds").asHours().toFixed(2)) : 0);
-        estimated_string.push(formatDuration(moment.duration(element.total_logged_time || "0", "seconds")));
+        estimated_string.push(formatDuration(moment.duration(element.total_estimated_time || "0", "seconds")));
         logged_string.push(formatDuration(moment.duration(element.total_logged_time || "0", "seconds")));
       });
     }
@@ -217,7 +214,8 @@ export default class ReportingController extends WorklenzControllerBase {
     data.stats.total_estimated_hours_string = formatDuration(totalMinutes);
     data.stats.total_logged_hours_string = formatDuration(totalSeconds);
 
-    data.stats.overlogged_hours = formatDuration(totalMinutes.subtract(totalSeconds));
+    const overloggedDuration = moment.duration(total_estimated - total_logged, "seconds");
+    data.stats.overlogged_hours = formatDuration(overloggedDuration);
 
     return res.status(200).send(new ServerResponse(true, data.stats || {}));
   }
@@ -256,8 +254,8 @@ export default class ReportingController extends WorklenzControllerBase {
     const result = await db.query(q, [req.user?.id, includeArchived]);
 
     for (const team of result.rows) {
-      team.names = this.createTagList(team?.team_members);
-      team.names.map((a: any) => a.color_code = getColor(a.name));
+      team.names = this.createTagList(team?.team_members || []);
+      team.names.forEach((a: any) => a.color_code = getColor(a.name));
     }
     return res.status(200).send(new ServerResponse(true, result.rows || []));
   }
@@ -302,7 +300,7 @@ export default class ReportingController extends WorklenzControllerBase {
       const overlogged = project.total_estimated - project.total_spent;
       project.overlogged = formatDuration(moment.duration((overlogged < 0 ? overlogged : 0) || "0", "seconds"));
       project.project_member_names = this.createTagList(project?.project_members);
-      project.project_member_names.map((a: any) => a.color_code = getColor(a.name));
+      project.project_member_names.forEach((a: any) => a.color_code = getColor(a.name));
     }
     return res.status(200).send(new ServerResponse(true, result.rows || []));
   }
@@ -933,8 +931,9 @@ export default class ReportingController extends WorklenzControllerBase {
     const [obj] = result.rows;
 
     for (const project of obj.data) {
-      project.completed_percentage = Math.round((project.completed_tasks_count / project.all_tasks_count) * 100);
-      project.doing_percentage = Math.round((project.is_doing_tasks_count / project.all_tasks_count) * 100);
+      const taskCount = project.all_tasks_count || 0;
+      project.completed_percentage = taskCount > 0 ? Math.round((project.completed_tasks_count / taskCount) * 100) : 0;
+      project.doing_percentage = taskCount > 0 ? Math.round((project.is_doing_tasks_count / taskCount) * 100) : 0;
       project.todo_percentage = 100 - (project.completed_percentage + project.doing_percentage);
     }
     return res.status(200).send(new ServerResponse(true, obj || []));
@@ -1253,7 +1252,8 @@ export default class ReportingController extends WorklenzControllerBase {
     data.stats.total_estimated_hours_string = formatDuration(totalMinutes);
     data.stats.total_logged_hours_string = formatDuration(totalSeconds);
 
-    data.stats.overlogged_hours = formatDuration(totalMinutes.subtract(totalSeconds));
+    const overloggedDuration = moment.duration(total_estimated - total_logged, "seconds");
+    data.stats.overlogged_hours = formatDuration(overloggedDuration);
 
     return res.status(200).send(new ServerResponse(true, data.stats || {}));
   }
@@ -1273,7 +1273,7 @@ export default class ReportingController extends WorklenzControllerBase {
     const [currentData] = currentResult.rows;
 
     // overdue tasks
-    const overdue_q = `SELECT get_reporting_member_current_doing_tasks($1, $2, $3, $4, $5) AS overdue_tasks;`;
+    const overdue_q = `SELECT get_reporting_member_overdue_tasks($1, $2, $3, $4, $5) AS overdue_tasks;`;
     const overdueResult = await db.query(overdue_q, [req.params.id, req.user?.id, includeArchived, 10, 0]);
     const [overdueData] = overdueResult.rows;
 
@@ -1353,7 +1353,9 @@ export default class ReportingController extends WorklenzControllerBase {
     const result = await db.query(q, [teamId, memberId]);
 
     for (const project of result.rows) {
-      project.contribution = ((project.assigned_task_count / project.total_task_count) * 100).toFixed(1);
+      project.contribution = project.total_task_count > 0
+        ? ((project.assigned_task_count / project.total_task_count) * 100).toFixed(1)
+        : "0.0";
     }
 
     return res.status(200).send(new ServerResponse(true, result.rows || []));
@@ -1374,7 +1376,7 @@ export default class ReportingController extends WorklenzControllerBase {
                              (SELECT category_id FROM task_statuses WHERE id = t.status_id)) AS status_color,
                       end_date AS due_date,
                       completed_at AS completed_date,
-                      (total_minutes * 60)::INT AS toal_estimated,
+                      (total_minutes * 60)::INT AS total_estimated,
                       (SELECT SUM(time_spent)
                        FROM task_work_log
                        WHERE task_work_log.task_id = t.id)::INT AS total_logged,
@@ -1393,8 +1395,8 @@ export default class ReportingController extends WorklenzControllerBase {
     const result = await db.query(q, [memberId, projectId]);
 
     for (const task of result.rows) {
-      task.overlogged_time = (task.toal_estimated && task.total_logged && task.toal_estimated < task.total_logged) ? formatDuration(moment.duration((task.toal_estimated - task.total_logged), "seconds")) : "-";
-      task.toal_estimated = formatDuration(moment.duration(task.toal_estimated, "seconds"));
+      task.overlogged_time = (task.total_estimated && task.total_logged && task.total_estimated < task.total_logged) ? formatDuration(moment.duration((task.total_estimated - task.total_logged), "seconds")) : "-";
+      task.total_estimated = formatDuration(moment.duration(task.total_estimated, "seconds"));
       task.total_logged = formatDuration(moment.duration(task.total_logged, "seconds"));
       task.status_color = task.status_color + TASK_STATUS_COLOR_ALPHA;
     }
@@ -1665,7 +1667,7 @@ export default class ReportingController extends WorklenzControllerBase {
 
     const result = await this.getTeamMemberInsightData(teamId, projectIds, statusIds, search, dateRangeClause || "", req.user?.id);
 
-    result.team_members.map((a: any) => {
+    result.team_members.forEach((a: any) => {
       a.color_code = getColor(a.name);
       a.total_logged_time = formatDuration(moment.duration(a.total_logged_time_seconds || "0", "seconds"));
     });
