@@ -24,27 +24,29 @@ Before you begin, make sure you have:
 ## Step 1: Clone the Repository
 
 ```bash
-git clone <your-repo-url> worklenz
-cd worklenz
+git clone https://github.com/VinitChaudhari85/worklenz-fixed.git
+cd worklenz-fixed
 ```
 
 ---
 
 ## Step 2: Configure Environment Variables
 
-The project includes a pre-configured `.env` file with sensible defaults. **No changes are required for local development.**
-
-If you want to review/customize the config:
+Copy the example config file to create your `.env`:
 
 ```bash
-# Open .env in your editor and review the following sections:
-# - DB_PASSWORD (default: Worklenz_DB_Pass_2024)
-# - REDIS_PASSWORD (default: Worklenz_Redis_Pass_2024)  
-# - SESSION_SECRET, COOKIE_SECRET, JWT_SECRET (pre-generated)
+cp .env.example .env
 ```
 
+On **Windows** (if `cp` doesn't work):
+```powershell
+copy .env.example .env
+```
+
+The defaults work immediately for local development — **no edits needed.**
+
 > [!NOTE]
-> For production deployments, you MUST change all passwords and secrets. For local development, the defaults work fine.
+> For production/server deployments, you MUST change all passwords and secrets in `.env`. For local development, the defaults are fine.
 
 ---
 
