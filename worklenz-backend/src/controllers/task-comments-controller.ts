@@ -7,7 +7,7 @@ import WorklenzControllerBase from "./worklenz-controller-base";
 import HandleExceptions from "../decorators/handle-exceptions";
 import { NotificationsService } from "../services/notifications/notifications.service";
 import { humanFileSize, log_error, megabytesToBytes } from "../shared/utils";
-import { HTML_TAG_REGEXP, S3_URL, getStorageUrl } from "../shared/constants";
+import { HTML_TAG_REGEXP, S3_PUBLIC_URL, getStorageUrl } from "../shared/constants";
 import { getBaseUrl } from "../cron_jobs/helpers";
 import { ICommentEmailNotification } from "../interfaces/comment-email-notification";
 import { sendTaskComment } from "../shared/email-notifications";
@@ -102,7 +102,7 @@ export default class TaskCommentsController extends WorklenzControllerBase {
     req.body.user_id = req.user?.id;
     req.body.team_id = req.user?.team_id;
     const { mentions, attachments, task_id } = req.body;
-    const url = `${S3_URL}/${getRootDir()}`;
+    const url = `${S3_PUBLIC_URL}/${getRootDir()}`;
 
     let commentContent = req.body.content;
     if (mentions.length > 0) {

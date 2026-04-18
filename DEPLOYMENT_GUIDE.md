@@ -64,6 +64,14 @@ FRONTEND_URL=http://YOUR_DOMAIN_OR_IP
 SOCKET_IO_CORS=http://YOUR_DOMAIN_OR_IP
 
 # ============================================
+# FILE STORAGE — REQUIRED for images to work!
+# ============================================
+# S3_URL stays as-is (internal Docker communication)
+S3_URL=http://minio:9000
+# S3_PUBLIC_URL is what browsers use to load images/files
+S3_PUBLIC_URL=http://YOUR_DOMAIN_OR_IP:9000
+
+# ============================================
 # PASSWORDS — Change ALL of these!
 # ============================================
 DB_PASSWORD=YourStrongDBPassword123!
@@ -155,27 +163,18 @@ http://YOUR_DOMAIN_OR_IP/worklenz
 
 ## Image Fix for End Users
 
-By default, uploaded file URLs point to `http://minio:9000` which only resolves on the server. To make images work for all users, add a MinIO proxy route to Nginx.
+The `S3_PUBLIC_URL` setting in `.env` (configured in Step 3 above) handles this automatically. When set to `http://YOUR_SERVER_IP:9000`, all file/image URLs in the app will use the server's public IP instead of the internal Docker hostname.
 
-### Option A: Quick Fix (Each User Adds Hosts Entry)
-
-Each team member adds this to their local machine's hosts file:
-
-```
-YOUR_SERVER_IP minio
+**Important:** Port 9000 must be accessible from the internet. Make sure your firewall allows it:
+```bash
+ufw allow 9000
 ```
 
-- **Windows:** `C:\Windows\System32\drivers\etc\hosts`
-- **Mac/Linux:** `/etc/hosts`
+If you **don't want to expose port 9000**, you can proxy MinIO through Nginx instead:
 
-This works but requires manual setup on every device.
-
-### Option B: Proper Fix (Nginx Proxy — Recommended)
-
-Edit `nginx/conf.d/worklenz.conf` and add this block **before** the `location /` block:
+1. Edit `nginx/conf.d/worklenz.conf` and add this block **before** the `location /` block:
 
 ```nginx
-# Proxy MinIO requests so browsers can access uploaded files
 location /minio-storage/ {
     proxy_pass http://minio:9000/;
     proxy_http_version 1.1;
@@ -186,19 +185,9 @@ location /minio-storage/ {
 }
 ```
 
-Then update the `S3_URL` in `.env`:
+2. Set `S3_PUBLIC_URL=http://YOUR_DOMAIN_OR_IP/minio-storage` in `.env`
 
-```env
-S3_URL=http://YOUR_DOMAIN_OR_IP/minio-storage
-```
-
-Restart:
-```bash
-docker compose down
-docker compose up -d
-```
-
-Now all file URLs will go through Nginx and work for everyone without any hosts file changes.
+3. Restart: `docker compose down && docker compose up -d`
 
 ---
 
@@ -320,7 +309,7 @@ Ensure these ports are open on your server:
 | 22 | SSH | Yes |
 | 80 | HTTP | Yes |
 | 443 | HTTPS | Only if using SSL |
-| 9000 | MinIO API | Only if using Option A for images |
+| 9000 | MinIO API | Yes (for file/image access from browsers) |
 | 9001 | MinIO Console | Optional (admin access) |
 
 **DigitalOcean Firewall:**
@@ -369,9 +358,11 @@ Before going live, verify:
 
 - [ ] `.env` file created from `.env.example`
 - [ ] All `localhost` values replaced with server IP/domain
+- [ ] `S3_PUBLIC_URL` set to `http://YOUR_SERVER_IP:9000`
 - [ ] All default passwords changed
 - [ ] All 3 secrets regenerated (`SESSION_SECRET`, `COOKIE_SECRET`, `JWT_SECRET`)
 - [ ] `127.0.0.1 minio` added to server's `/etc/hosts`
+- [ ] Port 9000 open in firewall (`ufw allow 9000`)
 - [ ] `docker compose ps` shows all services healthy
 - [ ] Can access `http://YOUR_IP/worklenz` in browser
 - [ ] Can sign up and create a project

@@ -9,7 +9,7 @@ import {
   S3Client
 } from "@aws-sdk/client-s3";
 import {isProduction, isTestServer, log_error} from "./utils";
-import {BUCKET, REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_URL} from "./constants";
+import {BUCKET, REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_URL, S3_PUBLIC_URL} from "./constants";
 import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
 import mime from "mime";
 
@@ -21,6 +21,18 @@ const s3Client = new S3Client({
     secretAccessKey: S3_SECRET_ACCESS_KEY || "",
   },
   endpoint: S3_URL,
+  forcePathStyle: true,
+});
+
+// Separate client for generating presigned URLs with the public endpoint
+// so browsers can actually reach the URLs
+const s3PublicClient = new S3Client({
+  region: REGION,
+  credentials: {
+    accessKeyId: S3_ACCESS_KEY_ID || "",
+    secretAccessKey: S3_SECRET_ACCESS_KEY || "",
+  },
+  endpoint: S3_PUBLIC_URL,
   forcePathStyle: true,
 });
 
@@ -57,7 +69,7 @@ export async function uploadBuffer(buffer: Buffer, type: string, location: strin
     };
 
     await s3Client.send(new PutObjectCommand(bucketParams));
-    return `${S3_URL}/${location}`;
+    return `${S3_PUBLIC_URL}/${location}`;
   } catch (error) {
     log_error(error);
   }
@@ -73,7 +85,7 @@ export async function uploadBase64(base64Data: string, location: string) {
     if (!type) return null;
 
     await uploadBuffer(buffer, type, location);
-    return `${S3_URL}/${location}`;
+    return `${S3_PUBLIC_URL}/${location}`;
   } catch (error) {
     log_error(error);
   }
@@ -133,5 +145,5 @@ export async function createPresignedUrlWithClient(key: string, file: string) {
     ResponseContentType: `${contentType}`,
     ResponseContentDisposition: `attachment; filename=${file}`,
   });
-  return getSignedUrl(s3Client, command, {expiresIn: 3600});
+  return getSignedUrl(s3PublicClient, command, {expiresIn: 3600});
 }

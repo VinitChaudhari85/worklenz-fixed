@@ -6,7 +6,7 @@ import { IWorkLenzResponse } from "../interfaces/worklenz-response";
 import db from "../config/db";
 
 import { ServerResponse } from "../models/server-response";
-import { S3_URL, TASK_STATUS_COLOR_ALPHA } from "../shared/constants";
+import { S3_PUBLIC_URL, TASK_STATUS_COLOR_ALPHA } from "../shared/constants";
 import { getDates, getMinMaxOfTaskDates, getMonthRange, getWeekRange } from "../shared/tasks-controller-utils";
 import { getColor, getRandomColorCode, humanFileSize, log_error, toMinutes } from "../shared/utils";
 import WorklenzControllerBase from "./worklenz-controller-base";
@@ -49,7 +49,7 @@ export default class TasksController extends TasksControllerBase {
           userId,
           size,
           type,
-          `${S3_URL}/${getRootDir()}`
+          `${S3_PUBLIC_URL}/${getRootDir()}`
         ]);
 
         const [data] = result.rows;

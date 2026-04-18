@@ -223,6 +223,9 @@ services:
       # IMPORTANT: S3_URL must point to minio (container name) for backend-to-minio
       # communication inside Docker, NOT to localhost
       S3_URL: ${S3_URL:-http://minio:9000}
+      # S3_PUBLIC_URL is the URL browsers use to access files.
+      # For production, set this to http://YOUR_SERVER_IP:9000
+      S3_PUBLIC_URL: ${S3_PUBLIC_URL:-${S3_URL:-http://minio:9000}}
 
       # Azure (optional, leave blank)
       AZURE_STORAGE_ACCOUNT_NAME: ${AZURE_STORAGE_ACCOUNT_NAME:-}

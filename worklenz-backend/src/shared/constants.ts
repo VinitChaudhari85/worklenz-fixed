@@ -156,6 +156,21 @@ export const S3_URL = process.env.S3_URL || "https://your-s3-url";
 export const S3_ACCESS_KEY_ID = process.env.S3_ACCESS_KEY_ID || "";
 export const S3_SECRET_ACCESS_KEY = process.env.S3_SECRET_ACCESS_KEY || "";
 
+// Public URL for browser-facing file links.
+// In production with Docker, S3_URL is http://minio:9000 (internal Docker hostname).
+// Browsers can't resolve that, so S3_PUBLIC_URL should be set to the server's
+// public IP/domain, e.g. http://165.227.195.7:9000
+// If not set, falls back to S3_URL (works for local dev where hosts file has minio entry).
+export const S3_PUBLIC_URL = process.env.S3_PUBLIC_URL || S3_URL;
+
+/**
+ * Returns the public base URL for browser-facing file references.
+ * Uses S3_PUBLIC_URL when available, otherwise falls back to S3_URL.
+ */
+export function getPublicS3BaseUrl() {
+  return S3_PUBLIC_URL;
+}
+
 // Azure Blob Storage Credentials
 export const STORAGE_PROVIDER = process.env.STORAGE_PROVIDER || "s3";
 export const AZURE_STORAGE_ACCOUNT_NAME =
@@ -168,14 +183,14 @@ export function getStorageUrl() {
   if (STORAGE_PROVIDER === "azure") {
     if (!AZURE_STORAGE_URL) {
       console.warn("AZURE_STORAGE_URL is not defined, falling back to S3_URL");
-      return S3_URL + "/" + BUCKET;
+      return S3_PUBLIC_URL + "/" + BUCKET;
     }
 
     // Return just the base Azure Blob Storage URL
     // AZURE_STORAGE_URL should be in the format: https://storageaccountname.blob.core.windows.net
     return `${AZURE_STORAGE_URL}/${AZURE_STORAGE_CONTAINER}`;
   }
-  return S3_URL + "/" + BUCKET;
+  return S3_PUBLIC_URL + "/" + BUCKET;
 }
 
 export const TASK_STATUS_COLOR_ALPHA = "69";

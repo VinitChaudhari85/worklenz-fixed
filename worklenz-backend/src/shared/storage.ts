@@ -30,6 +30,7 @@ import {
   S3_ACCESS_KEY_ID,
   S3_SECRET_ACCESS_KEY,
   S3_URL,
+  S3_PUBLIC_URL,
   STORAGE_PROVIDER,
 } from "./constants";
 
@@ -56,6 +57,25 @@ const s3Client = new S3Client({
   },
   endpoint: getEndpointFromUrl(),
   forcePathStyle: true, // Required for MinIO
+});
+
+// Public S3 client for presigned URL generation using the public endpoint
+const getPublicEndpoint = () => {
+  try {
+    if (!S3_PUBLIC_URL) return undefined;
+    const url = new URL(S3_PUBLIC_URL);
+    return `${url.protocol}//${url.host}`;
+  } catch { return undefined; }
+};
+
+const s3PublicClient = new S3Client({
+  region: REGION,
+  credentials: {
+    accessKeyId: S3_ACCESS_KEY_ID || "",
+    secretAccessKey: S3_SECRET_ACCESS_KEY || "",
+  },
+  endpoint: getPublicEndpoint(),
+  forcePathStyle: true,
 });
 
 // Log the storage configuration
@@ -165,7 +185,7 @@ async function uploadBufferToS3(
     }
     
     // For standard AWS S3
-    return `${S3_URL}/${location}`;
+    return `${S3_PUBLIC_URL}/${location}`;
   } catch (error) {
     log_error(error);
     return null;
@@ -331,7 +351,7 @@ async function createPresignedUrlWithS3Client(key: string, file: string) {
     ResponseContentType: `${contentType}`,
     ResponseContentDisposition: `attachment; filename=${file}`,
   });
-  return getSignedUrl(s3Client, command, { expiresIn: 3600 });
+  return getSignedUrl(s3PublicClient, command, { expiresIn: 3600 });
 }
 
 async function createPresignedUrlWithAzureClient(key: string, file: string) {
