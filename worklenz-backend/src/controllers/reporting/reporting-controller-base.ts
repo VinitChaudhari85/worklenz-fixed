@@ -177,9 +177,9 @@ export default abstract class ReportingControllerBase extends WorklenzController
 
     if (!userId || !teamId) return "";
 
-    // Check user's role
+    // Check user's role — roles table has: admin_role (bool), owner (bool)
     const roleQuery = `
-      SELECT r.key 
+      SELECT r.admin_role, r.owner 
       FROM roles r
       JOIN team_members tm ON tm.role_id = r.id
       WHERE tm.user_id = $1 AND tm.team_id = $2
@@ -188,25 +188,19 @@ export default abstract class ReportingControllerBase extends WorklenzController
 
     if (roleResult.rows.length === 0) return "";
 
-    const roleKey = roleResult.rows[0].key;
-
-    // Only apply filter for Team Leads
-    if (roleKey === 'TEAM_LEAD') {
-      // Team Leads can only see projects they manage
-      return `AND p.id IN (
-        SELECT pm.project_id 
-        FROM project_members pm 
-        WHERE pm.team_member_id IN (
-          SELECT id FROM team_members WHERE user_id = '${userId}'
-        ) 
-        AND pm.project_access_level_id = (
-          SELECT id FROM project_access_levels WHERE key = 'PROJECT_MANAGER'
-        )
-      )`;
-    }
+    const role = roleResult.rows[0];
 
     // Admins and Owners can see all projects
-    return "";
+    if (role.admin_role || role.owner) return "";
+
+    // Non-admin/non-owner users (Team Leads) can only see projects they manage
+    return `AND p.id IN (
+      SELECT pm.project_id 
+      FROM project_members pm 
+      WHERE pm.team_member_id IN (
+        SELECT id FROM team_members WHERE user_id = '${userId}'
+      )
+    )`;
   }
 
   /**
