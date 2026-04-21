@@ -4715,7 +4715,7 @@ BEGIN
     RETURN EXISTS(SELECT 1
                   FROM project_members
                   WHERE project_id = _project_id
-                    AND team_member_id = (SELECT id FROM team_members WHERE team_id = _team_id AND user_id = _user_id));
+                    AND team_member_id IN (SELECT id FROM team_members WHERE team_id = _team_id AND user_id = _user_id));
 END
 $$;
 
