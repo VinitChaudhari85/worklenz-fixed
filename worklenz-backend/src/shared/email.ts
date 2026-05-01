@@ -1,11 +1,20 @@
-import {SendEmailCommand, SESClient} from "@aws-sdk/client-ses";
+import nodemailer from "nodemailer";
 import {Validator} from "jsonschema";
 import {QueryResult} from "pg";
 import {log_error, isValidateEmail} from "./utils";
 import emailRequestSchema from "../json_schemas/email-request-schema";
 import db from "../config/db";
 
-const sesClient = new SESClient({region: process.env.AWS_REGION});
+// Create reusable SMTP transporter
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || "localhost",
+  port: parseInt(process.env.SMTP_PORT || "587", 10),
+  secure: process.env.SMTP_SECURE === "true", // true for port 465, false for 587 (STARTTLS)
+  auth: {
+    user: process.env.SMTP_USER || "",
+    pass: process.env.SMTP_PASSWORD || "",
+  },
+});
 
 export interface IEmail {
   to?: string[];
@@ -70,29 +79,14 @@ export async function sendEmail(email: IEmail): Promise<string | null> {
 
     if (!isValidMailBody(options)) return null;
 
-    const charset = "UTF-8";
-
-    const command = new SendEmailCommand({
-      Destination: {
-        ToAddresses: options.to
-      },
-      Message: {
-        Subject: {
-          Charset: charset,
-          Data: options.subject
-        },
-        Body: {
-          Html: {
-            Charset: charset,
-            Data: options.html
-          }
-        }
-      },
-      Source: "Worklenz <noreply@worklenz.com>"
+    const result = await transporter.sendMail({
+      from: process.env.SMTP_FROM || "Worklenz <noreply@worklenz.com>",
+      to: options.to.join(", "),
+      subject: options.subject,
+      html: options.html,
     });
 
-    const res = await sesClient.send(command);
-    return res.MessageId || null;
+    return result.messageId || null;
   } catch (e) {
     log_error(e);
   }
