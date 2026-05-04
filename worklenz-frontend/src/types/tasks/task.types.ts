@@ -67,6 +67,7 @@ export interface ITaskViewModel extends ITask {
   recurring?: boolean;
   task_level?: number;
   schedule_id?: string | null;
+  cover_url?: string | null;
 }
 
 export interface ITaskTeamMember extends ITeamMember {

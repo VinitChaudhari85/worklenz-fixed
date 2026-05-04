@@ -198,4 +198,18 @@ export const tasksApiService = {
     });
     return response.data;
   },
+
+  updateTaskCover: async (
+    taskId: string,
+    projectId: string,
+    file: string | null,
+    fileName?: string
+  ): Promise<IServerResponse<{ cover_url: string | null }>> => {
+    const response = await apiClient.put(`${rootUrl}/${taskId}/cover`, {
+      project_id: projectId,
+      file,
+      file_name: fileName,
+    });
+    return response.data;
+  },
 };

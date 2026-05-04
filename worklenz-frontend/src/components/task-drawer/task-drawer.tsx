@@ -14,8 +14,9 @@ import {
   setTaskSubscribers,
   setTimeLogEditing,
   fetchTask,
+  setTaskCoverUrl,
 } from '@/features/task-drawer/task-drawer.slice';
-
+import { fetchTasksV3 } from '@/features/task-management/task-management.slice';
 import './task-drawer.css';
 import TaskDrawerHeader from './task-drawer-header/task-drawer-header';
 import TaskDrawerActivityLog from './shared/activity-log/task-drawer-activity-log';
@@ -25,7 +26,8 @@ import TimeLogForm from './shared/time-log/time-log-form';
 import { DEFAULT_TASK_NAME } from '@/shared/constants';
 import useTaskDrawerUrlSync from '@/hooks/useTaskDrawerUrlSync';
 import InfoTabFooter from './shared/info-tab/info-tab-footer';
-import { Flex } from '@/shared/antd-imports';
+import { Flex, appMessage } from '@/shared/antd-imports';
+import { tasksApiService } from '@/api/tasks/tasks.api.service';
 
 const TaskDrawer = () => {
   const { t } = useTranslation('task-drawer/task-drawer');
@@ -227,6 +229,18 @@ const TaskDrawer = () => {
     return <CloseOutlined />;
   };
 
+  const handleRemoveCover = async () => {
+    if (!selectedTaskId || !projectId) return;
+    const res = await tasksApiService.updateTaskCover(selectedTaskId, projectId, null);
+    if (res.done) {
+      dispatch(setTaskCoverUrl({ cover_url: null, task_id: selectedTaskId }));
+      dispatch(fetchTasksV3(projectId));
+      appMessage.success('Cover photo removed');
+    }
+  };
+
+  const hasCover = !!taskFormViewModel?.task?.cover_url;
+
   const drawerProps = {
     open: showTaskDrawer,
     onClose: handleOnClose,
@@ -235,20 +249,32 @@ const TaskDrawer = () => {
     destroyOnClose: true,
     title: <TaskDrawerHeader inputRef={taskNameInputRef} t={t} />,
     footer: renderFooter(),
-    bodyStyle: getBodyStyle(),
+    bodyStyle: { ...getBodyStyle(), padding: hasCover ? '0 0 24px 0' : '24px' },
     footerStyle: getFooterStyle(),
     closeIcon: getCloseIcon(),
   };
 
   return (
     <Drawer {...drawerProps}>
-      <Tabs
-        type="card"
-        items={tabItems}
-        destroyOnHidden
-        onChange={handleTabChange}
-        activeKey={activeTab}
-      />
+      {hasCover && (
+        <div className="task-cover-container">
+          <img src={taskFormViewModel!.task!.cover_url!} alt="Task cover" className="task-cover-image" />
+          <Button
+            icon={<CloseOutlined />}
+            className="remove-cover-btn"
+            onClick={handleRemoveCover}
+          />
+        </div>
+      )}
+      <div style={{ padding: hasCover ? '0 24px' : '0' }}>
+        <Tabs
+          type="card"
+          items={tabItems}
+          destroyOnHidden
+          onChange={handleTabChange}
+          activeKey={activeTab}
+        />
+      </div>
     </Drawer>
   );
 };
