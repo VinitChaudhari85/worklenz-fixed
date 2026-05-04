@@ -1,4 +1,4 @@
-﻿import { ParsedQs } from "qs";
+import { ParsedQs } from "qs";
 
 import db from "../config/db";
 import HandleExceptions from "../decorators/handle-exceptions";
@@ -681,6 +681,7 @@ export default class TasksControllerV2 extends TasksControllerBase {
              start_date,
              billable,
              schedule_id,
+             t.cover_url,
              END_DATE ${customColumnsQuery} ${statusesQuery}
       FROM tasks t
       WHERE ${filters} ${enhancedSearchQuery}

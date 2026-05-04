@@ -1423,7 +1423,8 @@ CREATE TABLE IF NOT EXISTS tasks (
     manual_progress     BOOLEAN                  DEFAULT FALSE              NOT NULL,
     progress_value      INTEGER                  DEFAULT NULL,
     progress_mode       PROGRESS_MODE_TYPE       DEFAULT 'default'          NOT NULL,
-    weight              INTEGER                  DEFAULT NULL
+    weight              INTEGER                  DEFAULT NULL,
+    cover_url           TEXT
 );
 
 ALTER TABLE tasks

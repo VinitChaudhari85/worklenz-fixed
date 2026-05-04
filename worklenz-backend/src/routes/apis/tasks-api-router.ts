@@ -58,6 +58,7 @@ tasksApiRouter.put("/bulk/label", mapTasksToBulkUpdate, bulkTasksValidator, safe
 tasksApiRouter.put("/bulk/members", mapTasksToBulkUpdate, bulkTasksValidator, safeControllerFunction(TasksController.bulkAssignMembers));
 tasksApiRouter.put("/duration/:id", safeControllerFunction(TasksController.updateDuration));
 tasksApiRouter.put("/status/:status_id/:task_id", kanbanStatusUpdateValidator, safeControllerFunction(TasksController.updateStatus));
+tasksApiRouter.put("/:id/cover", idParamValidator, safeControllerFunction(TasksController.updateCoverPhoto));
 tasksApiRouter.put("/:id", idParamValidator, tasksBodyValidator, safeControllerFunction(TasksController.update));
 tasksApiRouter.delete("/:id", safeControllerFunction(TasksController.deleteById));
 tasksApiRouter.post("/quick-task", quickTaskBodyValidator, safeControllerFunction(TasksController.createQuickTask));

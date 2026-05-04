@@ -3531,7 +3531,8 @@ BEGIN
                  (SELECT get_task_assignees(tasks.id)) AS assignees,
                  (SELECT id FROM team_members WHERE user_id = _user_id AND team_id = _team_id) AS team_member_id,
                  billable,
-                 schedule_id
+                 schedule_id,
+                 cover_url
           FROM tasks
           WHERE id = _task_id) rec;
 
@@ -3757,7 +3758,8 @@ BEGIN
                  (SELECT name FROM users WHERE id = reporter_id) AS reporter,
                  (SELECT task_priorities.name FROM task_priorities WHERE id = t.priority_id) AS priority,
                  start_date,
-                 end_date
+                 end_date,
+                 cover_url
           FROM tasks t
           WHERE archived IS FALSE
             AND (project_id = _id)

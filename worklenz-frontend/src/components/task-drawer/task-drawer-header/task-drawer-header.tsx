@@ -1,6 +1,16 @@
-import { Button, Dropdown, Flex, Input, InputRef, MenuProps, Tooltip } from '@/shared/antd-imports';
+import {
+  Button,
+  Dropdown,
+  Flex,
+  Input,
+  InputRef,
+  MenuProps,
+  Tooltip,
+  Upload,
+  appMessage,
+} from '@/shared/antd-imports';
 import React, { ChangeEvent, useEffect, useRef, useState } from 'react';
-import { EllipsisOutlined } from '@/shared/antd-imports';
+import { EllipsisOutlined, PictureOutlined } from '@/shared/antd-imports';
 import { TFunction } from 'i18next';
 
 import './task-drawer-header.css';
@@ -10,7 +20,12 @@ import { useAuthService } from '@/hooks/useAuth';
 import TaskDrawerStatusDropdown from '../task-drawer-status-dropdown/task-drawer-status-dropdown';
 import { tasksApiService } from '@/api/tasks/tasks.api.service';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
-import { setSelectedTaskId, setShowTaskDrawer } from '@/features/task-drawer/task-drawer.slice';
+import {
+  setSelectedTaskId,
+  setShowTaskDrawer,
+  setTaskCoverUrl,
+} from '@/features/task-drawer/task-drawer.slice';
+import { fetchTasksV3 } from '@/features/task-management/task-management.slice';
 import { useSocket } from '@/socket/socketContext';
 import { SocketEvents } from '@/shared/socket-events';
 import useTaskDrawerUrlSync from '@/hooks/useTaskDrawerUrlSync';
@@ -18,10 +33,13 @@ import { deleteTask } from '@/features/tasks/tasks.slice';
 import { deleteTask as deleteTaskFromManagement } from '@/features/task-management/task-management.slice';
 import { deselectTask } from '@/features/task-management/selection.slice';
 import { deleteBoardTask } from '@/features/board/board-slice';
-import { deleteTask as deleteKanbanTask, updateEnhancedKanbanSubtask } from '@/features/enhanced-kanban/enhanced-kanban.slice';
-import useTabSearchParam from '@/hooks/useTabSearchParam';
+import {
+  deleteTask as deleteKanbanTask,
+  updateEnhancedKanbanSubtask,
+} from '@/features/enhanced-kanban/enhanced-kanban.slice';
 import { ITaskViewModel } from '@/types/tasks/task.types';
 import TaskHierarchyBreadcrumb from '../task-hierarchy-breadcrumb/task-hierarchy-breadcrumb';
+import { RcFile } from 'antd/es/upload';
 
 type TaskDrawerHeaderProps = {
   inputRef: React.RefObject<InputRef | null>;
@@ -42,6 +60,7 @@ const TaskDrawerHeader = ({ inputRef, t }: TaskDrawerHeaderProps) => {
   const [isEditing, setIsEditing] = useState(false);
 
   const { taskFormViewModel, selectedTaskId } = useAppSelector(state => state.taskDrawerReducer);
+  const { projectId } = useAppSelector(state => state.projectReducer);
   const [taskName, setTaskName] = useState<string>(taskFormViewModel?.task?.name ?? '');
   const currentSession = useAuthService().getCurrentSession();
 
@@ -81,7 +100,7 @@ const TaskDrawerHeader = ({ inputRef, t }: TaskDrawerHeaderProps) => {
           mode: 'delete',
         }));
       } else {
-        dispatch(deleteKanbanTask(selectedTaskId)); // <-- Add this line
+        dispatch(deleteKanbanTask(selectedTaskId));
       }
       dispatch(setShowTaskDrawer(false));
       // Reset the flag after a short delay
@@ -100,9 +119,45 @@ const TaskDrawerHeader = ({ inputRef, t }: TaskDrawerHeaderProps) => {
     }
   };
 
-  const deletTaskDropdownItems: MenuProps['items'] = [
+  const handleCoverUpload = async (file: RcFile) => {
+    if (!selectedTaskId || !projectId) return false;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target?.result as string;
+      const res = await tasksApiService.updateTaskCover(selectedTaskId, projectId, base64, file.name);
+      if (res.done) {
+        dispatch(setTaskCoverUrl({ cover_url: res.body.cover_url, task_id: selectedTaskId }));
+        dispatch(fetchTasksV3(projectId));
+        appMessage.success('Cover photo updated');
+      }
+    };
+    reader.readAsDataURL(file);
+    return false; // Prevent default upload behavior
+  };
+
+  const taskActionDropdownItems: MenuProps['items'] = [
     {
-      key: '1',
+      key: 'cover',
+      label: (
+        <Upload
+          showUploadList={false}
+          beforeUpload={handleCoverUpload}
+          accept="image/*"
+          style={{ width: '100%' }}
+        >
+          <Flex gap={8} align="center" style={{ padding: '5px 12px' }}>
+            <PictureOutlined />
+            <span>{taskFormViewModel?.task?.cover_url ? 'Change Cover' : 'Set Cover Photo'}</span>
+          </Flex>
+        </Upload>
+      ),
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'delete',
       label: (
         <Flex gap={8} align="center">
           <Button type="text" danger onClick={handleDeleteTask}>
@@ -182,7 +237,7 @@ const TaskDrawerHeader = ({ inputRef, t }: TaskDrawerHeaderProps) => {
           teamId={currentSession?.team_id ?? ''}
         />
 
-        <Dropdown overlayClassName={'delete-task-dropdown'} menu={{ items: deletTaskDropdownItems }}>
+        <Dropdown overlayClassName={'delete-task-dropdown'} menu={{ items: taskActionDropdownItems }}>
           <Button type="text" icon={<EllipsisOutlined />} />
         </Dropdown>
       </Flex>

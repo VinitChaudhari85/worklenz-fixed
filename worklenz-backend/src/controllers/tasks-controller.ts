@@ -8,7 +8,7 @@ import db from "../config/db";
 import { ServerResponse } from "../models/server-response";
 import { S3_PUBLIC_URL, TASK_STATUS_COLOR_ALPHA } from "../shared/constants";
 import { getDates, getMinMaxOfTaskDates, getMonthRange, getWeekRange } from "../shared/tasks-controller-utils";
-import { getColor, getRandomColorCode, humanFileSize, log_error, toMinutes } from "../shared/utils";
+import { getColor, getRandomColorCode, humanFileSize, log_error, smallId, toMinutes } from "../shared/utils";
 import WorklenzControllerBase from "./worklenz-controller-base";
 import HandleExceptions from "../decorators/handle-exceptions";
 import { NotificationsService } from "../services/notifications/notifications.service";
@@ -655,5 +655,34 @@ export default class TasksController extends TasksControllerBase {
     }
 
     return res.status(200).send(new ServerResponse(true, result.rows));
+  }
+
+  @HandleExceptions()
+  public static async updateCoverPhoto(req: IWorkLenzRequest, res: IWorkLenzResponse): Promise<IWorkLenzResponse> {
+    const { id } = req.params;
+    const { file, file_name, project_id } = req.body;
+    const teamId = req.user?.team_id as string;
+
+    // If no file provided, remove the cover photo
+    if (!file) {
+      const q = "UPDATE tasks SET cover_url = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id;";
+      await db.query(q, [id]);
+      return res.status(200).send(new ServerResponse(true, { cover_url: null }));
+    }
+
+    const type = file_name.split(".").pop();
+    const coverId = smallId(8);
+    const key = getKey(teamId, project_id, `${id}-cover-${coverId}`, type);
+
+    const s3Url = await uploadBase64(file, key);
+
+    if (!s3Url)
+      return res.status(200).send(new ServerResponse(false, null, "Cover photo upload failed"));
+
+    const q = "UPDATE tasks SET cover_url = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING cover_url;";
+    const result = await db.query(q, [s3Url, id]);
+    const [data] = result.rows;
+
+    return res.status(200).send(new ServerResponse(true, data));
   }
 }

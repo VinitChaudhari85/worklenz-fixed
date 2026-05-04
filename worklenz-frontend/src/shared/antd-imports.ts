@@ -65,7 +65,8 @@ import {
   Timeline,
   Mentions,
   Radio,
-  Steps
+  Steps,
+  Upload
 } from 'antd/es';
 
 // Icons - Import commonly used ones
@@ -183,7 +184,8 @@ export {
   WarningTwoTone,
   ShareAltOutlined,
   CloudDownloadOutlined,
-  CopyOutlined
+  CopyOutlined,
+  PictureOutlined
 } from '@ant-design/icons';
 
 // Re-export all components with React
@@ -242,7 +244,8 @@ export {
   Timeline,
   Mentions,
   Radio,
-  Steps
+  Steps,
+  Upload
 };
 
 // TypeScript Types - Import commonly used ones

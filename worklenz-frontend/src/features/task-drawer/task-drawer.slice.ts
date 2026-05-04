@@ -123,6 +123,12 @@ const taskDrawerSlice = createSlice({
     resetTaskDrawer: state => {
       return initialState;
     },
+    setTaskCoverUrl: (state, action: PayloadAction<{ cover_url: string | null; task_id: string }>) => {
+      const { cover_url, task_id } = action.payload;
+      if (state.taskFormViewModel?.task && state.taskFormViewModel.task.id === task_id) {
+        state.taskFormViewModel.task.cover_url = cover_url;
+      }
+    },
   },
   extraReducers: builder => {
     builder.addCase(fetchTask.pending, state => {
@@ -153,6 +159,7 @@ export const {
   setTimeLogEditing,
   setTaskRecurringSchedule,
   resetTaskDrawer,
+  setTaskCoverUrl,
   setConvertToSubtaskDrawerOpen,
 } = taskDrawerSlice.actions;
 export default taskDrawerSlice.reducer;
