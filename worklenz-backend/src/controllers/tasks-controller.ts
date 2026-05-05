@@ -6,7 +6,7 @@ import { IWorkLenzResponse } from "../interfaces/worklenz-response";
 import db from "../config/db";
 
 import { ServerResponse } from "../models/server-response";
-import { S3_PUBLIC_URL, TASK_STATUS_COLOR_ALPHA } from "../shared/constants";
+import { S3_PUBLIC_URL, TASK_STATUS_COLOR_ALPHA, getStorageUrl } from "../shared/constants";
 import { getDates, getMinMaxOfTaskDates, getMonthRange, getWeekRange } from "../shared/tasks-controller-utils";
 import { getColor, getRandomColorCode, humanFileSize, log_error, smallId, toMinutes } from "../shared/utils";
 import WorklenzControllerBase from "./worklenz-controller-base";
@@ -679,8 +679,10 @@ export default class TasksController extends TasksControllerBase {
     if (!s3Url)
       return res.status(200).send(new ServerResponse(false, null, "Cover photo upload failed"));
 
+    const correctUrl = `${getStorageUrl()}/${key}`;
+
     const q = "UPDATE tasks SET cover_url = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING cover_url;";
-    const result = await db.query(q, [s3Url, id]);
+    const result = await db.query(q, [correctUrl, id]);
     const [data] = result.rows;
 
     return res.status(200).send(new ServerResponse(true, data));
