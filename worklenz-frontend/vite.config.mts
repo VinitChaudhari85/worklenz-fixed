@@ -57,19 +57,19 @@ export default defineConfig(({ command, mode }) => {
       minify: isProduction ? 'terser' : false,
       terserOptions: isProduction
         ? {
-            compress: {
-              drop_console: true,
-              drop_debugger: true,
-              pure_funcs: ['console.log', 'console.info', 'console.debug'],
-              passes: 2, // Multiple passes for better compression
-            },
-            mangle: {
-              safari10: true,
-            },
-            format: {
-              comments: false,
-            },
-          }
+          compress: {
+            drop_console: true,
+            drop_debugger: true,
+            pure_funcs: ['console.log', 'console.info', 'console.debug'],
+            passes: 2, // Multiple passes for better compression
+          },
+          mangle: {
+            safari10: true,
+          },
+          format: {
+            comments: false,
+          },
+        }
         : undefined,
 
       // **Chunk Size Warnings**
