@@ -1617,6 +1617,7 @@ export default class TasksControllerV2 extends TasksControllerBase {
         has_dependencies: !!task.has_dependencies,
         schedule_id: task.schedule_id || null,
         reporter: task.reporter || null,
+        cover_url: task.cover_url || null,
       };
     });
 
