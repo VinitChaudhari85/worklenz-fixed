@@ -36,7 +36,10 @@ import { deleteBoardTask } from '@/features/board/board-slice';
 import {
   deleteTask as deleteKanbanTask,
   updateEnhancedKanbanSubtask,
+  updateEnhancedKanbanTaskName,
+  updateEnhancedKanbanTaskCoverUrl,
 } from '@/features/enhanced-kanban/enhanced-kanban.slice';
+import { updateBoardTaskCoverUrl } from '@/features/board/board-slice';
 import { ITaskViewModel } from '@/types/tasks/task.types';
 import TaskHierarchyBreadcrumb from '../task-hierarchy-breadcrumb/task-hierarchy-breadcrumb';
 import { RcFile } from 'antd/es/upload';
@@ -129,6 +132,8 @@ const TaskDrawerHeader = ({ inputRef, t }: TaskDrawerHeaderProps) => {
       if (res.done) {
         dispatch(setTaskCoverUrl({ cover_url: res.body.cover_url, task_id: selectedTaskId }));
         dispatch(fetchTasksV3(projectId));
+        dispatch(updateEnhancedKanbanTaskCoverUrl({ id: selectedTaskId, cover_url: res.body.cover_url }));
+        dispatch(updateBoardTaskCoverUrl({ id: selectedTaskId, cover_url: res.body.cover_url }));
         appMessage.success('Cover photo updated');
       }
     };

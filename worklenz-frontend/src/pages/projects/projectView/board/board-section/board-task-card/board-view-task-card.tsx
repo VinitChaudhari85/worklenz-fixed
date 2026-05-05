@@ -286,6 +286,11 @@ const BoardViewTaskCard = ({ task, sectionId }: IBoardViewTaskCardProps) => {
       <Dropdown menu={{ items }} trigger={['contextMenu']}>
         {/* Task Card */}
         <Flex vertical gap={8} onClick={e => handleCardClick(e, task.id || '')}>
+          {task.cover_url && (
+            <div className="board-task-cover" style={{ width: '100%', height: '140px', overflow: 'hidden', borderRadius: '6px', marginBottom: '4px' }}>
+              <img src={task.cover_url} alt="Cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </div>
+          )}
           {/* Labels and Progress */}
           <Flex align="center" justify="space-between">
             <Flex>{renderLabels}</Flex>

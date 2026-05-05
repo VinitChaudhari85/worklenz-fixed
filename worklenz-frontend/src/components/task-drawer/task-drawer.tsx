@@ -17,6 +17,8 @@ import {
   setTaskCoverUrl,
 } from '@/features/task-drawer/task-drawer.slice';
 import { fetchTasksV3 } from '@/features/task-management/task-management.slice';
+import { updateEnhancedKanbanTaskCoverUrl } from '@/features/enhanced-kanban/enhanced-kanban.slice';
+import { updateBoardTaskCoverUrl } from '@/features/board/board-slice';
 import './task-drawer.css';
 import TaskDrawerHeader from './task-drawer-header/task-drawer-header';
 import TaskDrawerActivityLog from './shared/activity-log/task-drawer-activity-log';
@@ -235,6 +237,8 @@ const TaskDrawer = () => {
     if (res.done) {
       dispatch(setTaskCoverUrl({ cover_url: null, task_id: selectedTaskId }));
       dispatch(fetchTasksV3(projectId));
+      dispatch(updateEnhancedKanbanTaskCoverUrl({ id: selectedTaskId, cover_url: null }));
+      dispatch(updateBoardTaskCoverUrl({ id: selectedTaskId, cover_url: null }));
       appMessage.success('Cover photo removed');
     }
   };

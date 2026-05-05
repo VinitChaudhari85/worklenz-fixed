@@ -692,6 +692,19 @@ const enhancedKanbanSlice = createSlice({
       }
     },
 
+    // Enhanced Kanban cover photo update (for use in task drawer)
+    updateEnhancedKanbanTaskCoverUrl: (
+      state,
+      action: PayloadAction<{ id: string; cover_url: string | null }>
+    ) => {
+      const { id, cover_url } = action.payload;
+      const result = findTaskInAllGroups(state.taskGroups, id);
+      if (result) {
+        result.task.cover_url = cover_url;
+        state.taskCache[id] = result.task;
+      }
+    },
+
     updateTaskPriority: (state, action: PayloadAction<ITaskListPriorityChangeResponse>) => {
       const { id: task_id, priority_id } = action.payload;
 
@@ -1096,6 +1109,7 @@ export const {
   updateEnhancedKanbanTaskLabels,
   updateEnhancedKanbanTaskProgress,
   updateEnhancedKanbanTaskName,
+  updateEnhancedKanbanTaskCoverUrl,
   updateEnhancedKanbanTaskEndDate,
   updateEnhancedKanbanTaskStartDate,
   updateEnhancedKanbanSubtask,

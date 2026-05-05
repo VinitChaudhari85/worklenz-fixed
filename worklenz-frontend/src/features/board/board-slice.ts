@@ -629,6 +629,22 @@ const boardSlice = createSlice({
       }
     },
 
+    updateBoardTaskCoverUrl: (
+      state,
+      action: PayloadAction<{
+        id: string;
+        cover_url: string | null;
+      }>
+    ) => {
+      const { id, cover_url } = action.payload;
+
+      // Find the task and update it
+      const result = findTaskInAllGroups(state.taskGroups, id);
+      if (result) {
+        result.task.cover_url = cover_url;
+      }
+    },
+
     updateTaskEndDate: (
       state,
       action: PayloadAction<{
@@ -886,6 +902,7 @@ export const {
   updateTaskAssignees,
   updateTaskEndDate,
   updateTaskName,
+  updateBoardTaskCoverUrl,
   updateSubtask,
   toggleSubtasksInclude,
   toggleTaskExpansion,
