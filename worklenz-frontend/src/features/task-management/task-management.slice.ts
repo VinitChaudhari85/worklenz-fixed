@@ -192,6 +192,7 @@ export const fetchTasks = createAsyncThunk(
           attachments_count: task.attachments_count || 0,
           has_dependencies: task.has_dependencies || false,
           schedule_id: task.schedule_id || null,
+          cover_url: task.cover_url || null,
           reporter: task.reporter || undefined,
         }))
       );
@@ -310,6 +311,7 @@ export const fetchTasksV3 = createAsyncThunk(
           attachments_count: task.attachments_count || 0,
           has_dependencies: task.has_dependencies || false,
           schedule_id: task.schedule_id || null,
+          cover_url: task.cover_url || null,
           reporter: task.reporter || undefined,
         };
         
