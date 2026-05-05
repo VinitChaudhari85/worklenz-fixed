@@ -40,6 +40,7 @@ export interface Task {
   has_dependencies?: boolean;
   has_subscribers?: boolean;
   schedule_id?: string | null;
+  cover_url?: string | null;
   order?: number;
   status_sort_order?: number; // Sort order when grouped by status
   priority_sort_order?: number; // Sort order when grouped by priority
