@@ -9,7 +9,7 @@ COPY . ./
 ENV VITE_API_URL=__VITE_API_URL__
 ENV VITE_SOCKET_URL=__VITE_SOCKET_URL__
 
-RUN npm run build
+RUN node --max-old-space-size=1536 node_modules/.bin/vite build
 
 # Stage 2: Production stage
 FROM node:20-bullseye-slim
