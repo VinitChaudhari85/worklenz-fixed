@@ -2,14 +2,14 @@
 FROM node:20-bullseye-slim AS builder
 
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci && npm cache clean --force
+# Pre-built assets are used to save server memory
 COPY . ./
-
-ENV VITE_API_URL=__VITE_API_URL__
-ENV VITE_SOCKET_URL=__VITE_SOCKET_URL__
-
-RUN npm run build
+# This check ensures that if the user SCP'd the build folder, we use it.
+# If not, we create a placeholder to avoid build failure.
+RUN if [ ! -d "build" ]; then \
+      mkdir -p build && \
+      echo "<html><body><h1>Pre-built folder missing</h1><p>Please SCP the 'build' folder from your local machine.</p></body></html>" > build/index.html; \
+    fi
 
 # Stage 2: Production stage
 FROM node:20-bullseye-slim
@@ -51,4 +51,3 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["/app/start.sh"]
-
