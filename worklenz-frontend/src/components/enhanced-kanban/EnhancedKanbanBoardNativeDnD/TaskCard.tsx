@@ -321,6 +321,25 @@ const TaskCard: React.FC<TaskCardProps> = memo(({
                     }}
                 >
                     <div className="task-content">
+                        {task.cover_url && (
+                            <div className="task-cover" style={{ 
+                                width: '100%', 
+                                height: '140px', 
+                                overflow: 'hidden', 
+                                borderRadius: '6px 6px 0 0',
+                                marginBottom: '8px',
+                                marginTop: '-12px',
+                                marginLeft: '-12px',
+                                marginRight: '-12px',
+                                width: 'calc(100% + 24px)'
+                            }}>
+                                <img 
+                                    src={task.cover_url} 
+                                    alt="Cover" 
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                />
+                            </div>
+                        )}
                         <div className="task_labels" style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
                             {task.labels?.map(label => (
                                 <div

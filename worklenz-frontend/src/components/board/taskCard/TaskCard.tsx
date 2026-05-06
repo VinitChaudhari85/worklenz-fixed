@@ -150,6 +150,21 @@ const TaskCard: React.FC<taskProps> = ({ task }) => {
             gap: '10px',
           }}
         >
+          {task.cover_url && (
+            <div className="task-card-cover" style={{ 
+              width: '100%', 
+              height: '140px', 
+              overflow: 'hidden', 
+              borderRadius: '4px',
+              marginBottom: '8px'
+            }}>
+              <img 
+                src={task.cover_url} 
+                alt="Cover" 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+              />
+            </div>
+          )}
           {/* Labels and Progress */}
           <div style={{ display: 'flex' }}>
             <div>
