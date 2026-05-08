@@ -3496,12 +3496,13 @@ BEGIN
                  status_id,
                  parent_task_id,
                  sort_order,
-                 (SELECT phase_id FROM task_phase WHERE task_id = tasks.id) AS phase_id,
+                 (SELECT phase_id FROM task_phase WHERE task_id = tasks.id LIMIT 1) AS phase_id,
                  CONCAT((SELECT key FROM projects WHERE id = tasks.project_id), '-', task_no) AS task_key,
                  (SELECT start_time
                   FROM task_timers
                   WHERE task_id = tasks.id
-                    AND user_id = _user_id) AS timer_start_time,
+                    AND user_id = _user_id
+                  LIMIT 1) AS timer_start_time,
                  parent_task_id IS NOT NULL AS is_sub_task,
                  (SELECT COUNT('*')
                   FROM tasks
@@ -3529,7 +3530,7 @@ BEGIN
                  (SELECT COUNT(*) FROM tasks WHERE parent_task_id = _task_id) AS sub_tasks_count,
                  (SELECT name FROM users WHERE id = tasks.reporter_id) AS reporter,
                  (SELECT get_task_assignees(tasks.id)) AS assignees,
-                 (SELECT id FROM team_members WHERE user_id = _user_id AND team_id = _team_id) AS team_member_id,
+                 (SELECT id FROM team_members WHERE user_id = _user_id AND team_id = _team_id LIMIT 1) AS team_member_id,
                  billable,
                  schedule_id,
                  cover_url
