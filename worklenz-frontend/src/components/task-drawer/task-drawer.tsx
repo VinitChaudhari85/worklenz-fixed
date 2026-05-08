@@ -1,9 +1,9 @@
-import { TabsProps, Tabs, Button } from '@/shared/antd-imports';
+import { TabsProps, Tabs, Button, Upload } from '@/shared/antd-imports';
 import Drawer from 'antd/es/drawer';
 import { InputRef } from 'antd/es/input';
 import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState } from 'react';
-import { PlusOutlined, CloseOutlined, ArrowLeftOutlined } from '@/shared/antd-imports';
+import { PlusOutlined, CloseOutlined, ArrowLeftOutlined, PictureOutlined, EditOutlined } from '@/shared/antd-imports';
 
 import { useAppSelector } from '@/hooks/useAppSelector';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
@@ -30,6 +30,7 @@ import useTaskDrawerUrlSync from '@/hooks/useTaskDrawerUrlSync';
 import InfoTabFooter from './shared/info-tab/info-tab-footer';
 import { Flex, appMessage } from '@/shared/antd-imports';
 import { tasksApiService } from '@/api/tasks/tasks.api.service';
+import { RcFile } from 'antd/es/upload';
 
 const TaskDrawer = () => {
   const { t } = useTranslation('task-drawer/task-drawer');
@@ -243,6 +244,24 @@ const TaskDrawer = () => {
     }
   };
 
+  const handleCoverUpload = async (file: RcFile) => {
+    if (!selectedTaskId || !projectId) return false;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target?.result as string;
+      const res = await tasksApiService.updateTaskCover(selectedTaskId, projectId, base64, file.name);
+      if (res.done) {
+        dispatch(setTaskCoverUrl({ cover_url: res.body.cover_url, task_id: selectedTaskId }));
+        dispatch(fetchTasksV3(projectId));
+        dispatch(updateEnhancedKanbanTaskCoverUrl({ id: selectedTaskId, cover_url: res.body.cover_url }));
+        dispatch(updateBoardTaskCoverUrl({ id: selectedTaskId, cover_url: res.body.cover_url }));
+        appMessage.success('Cover photo updated');
+      }
+    };
+    reader.readAsDataURL(file);
+    return false;
+  };
+
   const hasCover = !!taskFormViewModel?.task?.cover_url;
 
   const drawerProps = {
@@ -260,15 +279,25 @@ const TaskDrawer = () => {
 
   return (
     <Drawer {...drawerProps}>
-      {hasCover && (
+      {hasCover ? (
         <div className="task-cover-container">
           <img src={taskFormViewModel!.task!.cover_url!} alt="Task cover" className="task-cover-image" />
+          <Upload showUploadList={false} beforeUpload={handleCoverUpload} accept="image/*">
+            <Button icon={<EditOutlined />} className="change-cover-btn">Change Cover</Button>
+          </Upload>
           <Button
             icon={<CloseOutlined />}
             className="remove-cover-btn"
             onClick={handleRemoveCover}
           />
         </div>
+      ) : (
+        <Upload showUploadList={false} beforeUpload={handleCoverUpload} accept="image/*">
+          <div className="add-cover-placeholder">
+            <PictureOutlined style={{ fontSize: 18 }} />
+            <span>Add cover photo</span>
+          </div>
+        </Upload>
       )}
       <div style={{ padding: hasCover ? '0 24px' : '0' }}>
         <Tabs

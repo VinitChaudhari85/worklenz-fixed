@@ -59,3 +59,56 @@
 .task-cover-container:hover .remove-cover-btn {
   opacity: 1;
 }
+
+/* Change Cover button overlay */
+.change-cover-btn {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.6) !important;
+  color: white !important;
+  border: none !important;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.change-cover-btn:hover {
+  background: rgba(0, 0, 0, 0.8) !important;
+}
+
+.task-cover-container:hover .change-cover-btn {
+  opacity: 1;
+}
+
+/* Add Cover placeholder */
+.add-cover-placeholder {
+  width: 100%;
+  height: 56px;
+  border: 2px dashed rgba(128, 128, 128, 0.25);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: rgba(128, 128, 128, 0.5);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.add-cover-placeholder:hover {
+  border-color: rgba(128, 128, 128, 0.5);
+  color: rgba(128, 128, 128, 0.8);
+  background: rgba(128, 128, 128, 0.04);
+}
+
+[data-theme='dark'] .add-cover-placeholder:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.5);
+}
