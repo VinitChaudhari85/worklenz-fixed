@@ -323,7 +323,7 @@ const TaskCard: React.FC<TaskCardProps> = memo(({
                     <div className="task-content">
                         {task.cover_url && (
                             <div className="task-cover" style={{ 
-                                width: '100%', 
+                                width: 'calc(100% + 24px)',
                                 height: '140px', 
                                 overflow: 'hidden', 
                                 borderRadius: '6px 6px 0 0',
@@ -331,12 +331,17 @@ const TaskCard: React.FC<TaskCardProps> = memo(({
                                 marginTop: '-12px',
                                 marginLeft: '-12px',
                                 marginRight: '-12px',
-                                width: 'calc(100% + 24px)'
+                                backgroundColor: 'rgba(128,128,128,0.1)',
                             }}>
                                 <img 
                                     src={task.cover_url} 
                                     alt="Cover" 
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                    loading="lazy"
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    onError={(e) => {
+                                        const parent = e.currentTarget.parentElement;
+                                        if (parent) parent.style.display = 'none';
+                                    }}
                                 />
                             </div>
                         )}

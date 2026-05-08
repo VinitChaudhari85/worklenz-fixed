@@ -152,16 +152,22 @@ const TaskCard: React.FC<taskProps> = ({ task }) => {
         >
           {task.cover_url && (
             <div className="task-card-cover" style={{ 
-              width: '100%', 
+              width: 'calc(100% + 24px)', 
               height: '140px', 
               overflow: 'hidden', 
-              borderRadius: '4px',
-              marginBottom: '8px'
+              borderRadius: '4px 4px 0 0',
+              margin: '-12px -12px 8px -12px',
+              backgroundColor: 'rgba(128,128,128,0.1)',
             }}>
               <img 
                 src={task.cover_url} 
                 alt="Cover" 
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                loading="lazy"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => {
+                  const parent = e.currentTarget.parentElement;
+                  if (parent) parent.style.display = 'none';
+                }}
               />
             </div>
           )}

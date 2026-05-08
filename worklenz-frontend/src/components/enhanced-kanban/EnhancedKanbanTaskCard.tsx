@@ -148,7 +148,15 @@ const EnhancedKanbanTaskCard: React.FC<EnhancedKanbanTaskCardProps> = React.memo
         <div className="task-content" onClick={e => handleCardClick(e, task.id || '')}>
           {task.cover_url && (
             <div className="enhanced-kanban-task-cover">
-              <img src={task.cover_url} alt="Cover" />
+              <img
+                src={task.cover_url}
+                alt="Cover"
+                loading="lazy"
+                onError={(e) => {
+                  const parent = e.currentTarget.parentElement;
+                  if (parent) parent.style.display = 'none';
+                }}
+              />
             </div>
           )}
           <Flex align="center" justify="space-between" className="mb-2">
